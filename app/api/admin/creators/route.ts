@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -8,8 +9,7 @@ import { listCreators } from "@/lib/data";
 const inputSchema = z.object({
   name: z.string().min(2),
   handle: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.union([z.string().email(), z.literal("")]).optional(),
   platform: z.string().default("TikTok"),
   followers: z.coerce.number().int().min(0).default(0),
   commissionRate: z.coerce.number().min(1).max(10).default(7),
@@ -33,19 +33,34 @@ export async function POST(request: Request) {
     const input = inputSchema.parse(await request.json());
     const creatorId = `cr_${crypto.randomUUID()}`;
     const userId = `usr_${crypto.randomUUID()}`;
-    const passwordHash = await hash(input.password, 12);
     const handle = normalizeHandle(input.handle);
+    if (!handle) return NextResponse.json({ error: "Enter a valid creator handle" }, { status: 400 });
+
+    const pin = String(randomInt(1000, 10000));
+    const pinHash = await hash(pin, 12);
+    const email = input.email?.trim() || `${handle}.${userId.slice(-8)}@creator.gizet.local`;
+    const code = input.discountCode.toUpperCase();
+
     await transaction(async (client) => {
       await client.query(`
         INSERT INTO creators (id, name, handle, platform, followers, status, tier, commission_rate, discount_code)
         VALUES ($1,$2,$3,$4,$5,'active','starter',$6,$7)
-      `, [creatorId, input.name.trim(), handle, input.platform, input.followers, input.commissionRate, input.discountCode.toUpperCase()]);
+      `, [creatorId, input.name.trim(), handle, input.platform, input.followers, input.commissionRate, code]);
       await client.query(`
         INSERT INTO users (id, email, password_hash, role, creator_id, status)
         VALUES ($1, LOWER($2), $3, 'creator', $4, 'active')
-      `, [userId, input.email, passwordHash, creatorId]);
+      `, [userId, email, pinHash, creatorId]);
     });
-    return NextResponse.json({ ok: true, creatorId, handle }, { status: 201 });
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || new URL(request.url).origin;
+    return NextResponse.json({
+      ok: true,
+      creatorId,
+      handle,
+      code,
+      pin,
+      loginUrl: `${appUrl.replace(/\/$/, "")}/login?creator=${encodeURIComponent(code)}`,
+    }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not create creator";
     return NextResponse.json({ error: message.includes("duplicate key") ? "Email, handle or code already exists" : message }, { status: 400 });
