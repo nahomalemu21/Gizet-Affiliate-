@@ -2,12 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CopyButton } from "@/components/CopyButton";
 
 export function CreateCreatorForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loginUrl, setLoginUrl] = useState("");
+
+  function close() {
+    setOpen(false);
+    setLoginUrl("");
+    setError("");
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -20,18 +28,23 @@ export function CreateCreatorForm() {
     const body = await response.json().catch(() => ({}));
     setLoading(false);
     if (!response.ok) { setError(body.error || "Could not create creator"); return; }
-    setOpen(false); router.refresh();
+    setLoginUrl(body.loginUrl);
+    router.refresh();
   }
 
   if (!open) return <button className="btn-primary" onClick={() => setOpen(true)}>Invite creator</button>;
-  return <div className="modal-backdrop"><div className="modal-card"><div className="panel-head"><div><h2>Create creator account</h2><p>They can log in immediately with the password you set.</p></div><button className="icon-button" onClick={() => setOpen(false)}>×</button></div><form className="admin-form" onSubmit={submit}>
-    <label>Name<input name="name" required /></label><label>Handle<input name="handle" required placeholder="hanalifestyle" /></label>
-    <label>Email<input name="email" type="email" required /></label><label>Temporary password<input name="password" type="password" minLength={8} required /></label>
-    <label>Platform<select name="platform" defaultValue="TikTok"><option>TikTok</option><option>Instagram</option><option>YouTube</option></select></label>
-    <label>Followers<input name="followers" type="number" min="0" defaultValue="0" /></label>
-    <label>Commission %<input name="commissionRate" type="number" min="1" max="10" step="0.5" defaultValue="7" /></label>
-    <label>Discount code<input name="discountCode" required placeholder="HANA" /></label>
-    {error && <div className="form-error form-wide">{error}</div>}
-    <div className="form-actions form-wide"><button type="button" className="btn-secondary" onClick={() => setOpen(false)}>Cancel</button><button className="btn-primary" disabled={loading}>{loading ? "Creating…" : "Create account"}</button></div>
-  </form></div></div>;
+
+  return <div className="modal-backdrop"><div className="modal-card"><div className="panel-head"><div><h2>{loginUrl ? "Creator access is ready" : "Create creator account"}</h2><p>{loginUrl ? "Send this link and the four-digit PIN you chose." : "Creators use a short code and PIN instead of a normal password."}</p></div><button className="icon-button" onClick={close}>×</button></div>
+    {loginUrl ? <div className="invite-result"><div className="invite-block"><span>Creator login link</span><strong>{loginUrl}</strong><CopyButton value={loginUrl} label="Copy link"/></div><div className="remember-note">The creator code is already filled in. They enter the PIN once, and the device stays signed in for 30 days.</div><div className="form-actions"><button className="btn-primary" onClick={close}>Done</button></div></div> : <form className="admin-form" onSubmit={submit}>
+      <label>Name<input name="name" required /></label><label>Handle<input name="handle" required placeholder="hanalifestyle" /></label>
+      <label>Email for recovery <span className="optional-label">Optional</span><input name="email" type="email" placeholder="creator@example.com" /></label>
+      <label>4-digit PIN<input name="pin" type="password" inputMode="numeric" pattern="[0-9]{4}" minLength={4} maxLength={4} required placeholder="Four digits" /></label>
+      <label>Platform<select name="platform" defaultValue="TikTok"><option>TikTok</option><option>Instagram</option><option>YouTube</option></select></label>
+      <label>Followers<input name="followers" type="number" min="0" defaultValue="0" /></label>
+      <label>Commission %<input name="commissionRate" type="number" min="1" max="10" step="0.5" defaultValue="7" /></label>
+      <label>Creator code<input name="discountCode" required placeholder="HANA" /></label>
+      {error && <div className="form-error form-wide">{error}</div>}
+      <div className="form-actions form-wide"><button type="button" className="btn-secondary" onClick={close}>Cancel</button><button className="btn-primary" disabled={loading}>{loading ? "Creating…" : "Create access"}</button></div>
+    </form>}
+  </div></div>;
 }
