@@ -39,7 +39,7 @@ export function AppShell({ mode, children }: { mode: "creator" | "admin"; childr
         </nav>
         <div className="sidebar-bottom">
           <Link href={mode === "creator" ? "/admin" : "/creator"} className="switch-role"><Icon name={mode === "creator" ? "shield" : "users"} size={16}/><span>Open {mode === "creator" ? "admin" : "creator"} view</span></Link>
-          <Link href="/" className="nav-item"><Icon name="logout" size={17}/><span>Exit demo</span></Link>
+          <form action="/api/auth/logout" method="post"><button className="nav-item logout-button" type="submit"><Icon name="logout" size={17}/><span>Sign out</span></button></form>
         </div>
       </aside>
       <div className="mobile-bar"><Logo compact/><div className="mobile-title">{mode === "creator" ? "Creator Portal" : "Admin Portal"}</div><Icon name="menu"/></div>
