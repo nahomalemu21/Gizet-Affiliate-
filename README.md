@@ -1,66 +1,70 @@
 # Gizet Affiliate Portal
 
-A separate, mobile-first affiliate system for Gizet creators and operations. This repository is independent from `gizet-vendor-portal` and does not modify it.
+A separate affiliate system for Gizet creators and operations. It does not modify the vendor portal or mobile app repositories.
 
-## Included
+## Working MVP features
 
-- Creator dashboard with earnings, tiers and delivery rate
-- Affiliate product marketplace with exact ETB payout per delivered order
-- Stable creator URLs: `/c/:creator/:product`
-- First-party creator and click cookies
-- UTM parameters for analytics only
-- Discount-code fallback model
-- Creator order and payout views
-- Gizet admin dashboards for creators, products, attribution and payouts
-- Shopify webhook signature validation and attribution extraction
-- PostgreSQL production schema
-- 7% base commission with tier-ready support up to 10%
+- Secure admin and creator login with signed session cookies
+- PostgreSQL-backed creators, products, clicks, orders and payouts
+- Admin creator account creation
+- Shopify product synchronization
+- Stable affiliate redirect links with unique click IDs
+- Shopify cart-attribute tracking script
+- Shopify order webhooks with HMAC verification
+- Product-level commission calculation
+- Manual delivery-status control before commission is released
+- Auditable payout creation, approval and paid status
+- Mobile-first creator and admin dashboards
 
-## Run locally
+## Vercel environment variables
+
+```env
+NEXT_PUBLIC_GIZET_STORE_URL=https://gizet.co
+NEXT_PUBLIC_APP_URL=https://YOUR-VERCEL-DOMAIN
+APP_URL=https://YOUR-VERCEL-DOMAIN
+AFFILIATE_COOKIE_DAYS=30
+DATABASE_URL=postgresql://...
+SESSION_SECRET=minimum-32-character-random-secret
+BOOTSTRAP_SECRET=another-random-secret
+ADMIN_EMAIL=your-admin-email
+ADMIN_PASSWORD=your-strong-admin-password
+IP_HASH_SALT=random-value
+SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
+SHOPIFY_ADMIN_ACCESS_TOKEN=shpat_...
+SHOPIFY_WEBHOOK_SECRET=your-shopify-app-client-secret
+SHOPIFY_API_VERSION=2026-04
+```
+
+## First-time setup
+
+1. Create a PostgreSQL database and add `DATABASE_URL` to Vercel.
+2. Add all security/admin variables above.
+3. Redeploy.
+4. Open `/setup` on the deployed portal.
+5. Enter `BOOTSTRAP_SECRET` once to create the tables and admin login.
+6. Sign in using `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
+7. In the admin dashboard, click **Sync Shopify products** and **Connect Shopify webhooks**.
+
+## Shopify storefront tracking script
+
+Add this before `</body>` in the live Gizet Shopify theme:
+
+```liquid
+<script src="https://YOUR-VERCEL-DOMAIN/gizet-affiliate.js" defer></script>
+```
+
+The script reads the creator and click identifiers from the affiliate URL, stores them on `gizet.co`, and writes these Shopify cart attributes:
+
+- `affiliate_creator_id`
+- `affiliate_click_id`
+- `affiliate_source`
+
+Those attributes are included in the Shopify order webhook and become the financial source of truth for creator attribution.
+
+## Validation
 
 ```bash
 npm install
-cp .env.example .env.local
-npm run dev
+npm run lint
+npm run build
 ```
-
-Open `http://localhost:3000`.
-
-## Tracking flow
-
-1. Creator shares `https://your-domain.com/c/hana/portable-smoothie-blender`.
-2. The route creates a unique click ID and stores first-party cookies.
-3. The customer is redirected to the Gizet product with UTM parameters and affiliate identifiers.
-4. The storefront must copy `affiliate_creator_id` and `affiliate_click_id` into Shopify cart attributes.
-5. Shopify creates the order and calls `/api/shopify/webhooks/orders-create`.
-6. Attribution is locked in `affiliate_orders`.
-7. Delivery updates move commission from pending to available.
-8. Paid orders are grouped into auditable payouts.
-
-## Storefront cart attributes
-
-Add these when creating or updating the Shopify cart:
-
-```json
-{
-  "affiliate_creator_id": "hana",
-  "affiliate_click_id": "clk_...",
-  "affiliate_source": "tiktok"
-}
-```
-
-## Environment variables
-
-- `NEXT_PUBLIC_GIZET_STORE_URL` — Gizet Shopify storefront URL
-- `AFFILIATE_COOKIE_DAYS` — default 30
-- `SHOPIFY_WEBHOOK_SECRET` — Shopify webhook signing secret
-- `DATABASE_URL` — PostgreSQL connection string
-
-## Production work remaining
-
-- Connect authentication for creators/admins
-- Replace demo data with PostgreSQL queries
-- Add Shopify product sync
-- Add delivery-status webhook/source
-- Add payout approval actions and transaction references
-- Add fraud review rules
