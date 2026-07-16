@@ -22,8 +22,12 @@ export const schemaStatements = [
     creator_id TEXT REFERENCES creators(id) ON DELETE CASCADE,
     status TEXT NOT NULL DEFAULT 'active',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    last_login_at TIMESTAMPTZ
+    last_login_at TIMESTAMPTZ,
+    failed_login_attempts INTEGER NOT NULL DEFAULT 0,
+    locked_until TIMESTAMPTZ
   )`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ`,
   `CREATE TABLE IF NOT EXISTS affiliate_products (
     id TEXT PRIMARY KEY,
     shopify_product_id TEXT UNIQUE,
