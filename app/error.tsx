@@ -1,0 +1,2 @@
+"use client";
+export default function ErrorPage({error,reset}:{error:Error&{digest?:string};reset:()=>void}){return <main className="entry-page"><section className="entry-card"><div className="entry-copy"><div className="entry-badge">Portal error</div><h1>Something is not connected yet.</h1><p>{error.message||"The database or environment variables may not be configured."}</p></div><div className="entry-options"><button className="btn-primary" onClick={reset}>Try again</button><a className="btn-secondary" href="/setup">Open setup</a></div></section></main>}
