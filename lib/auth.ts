@@ -10,6 +10,8 @@ export type Session = {
 };
 
 const COOKIE_NAME = "gizet_affiliate_session";
+const CREATOR_SESSION_SECONDS = 60 * 60 * 24 * 30;
+const ADMIN_SESSION_SECONDS = 60 * 60 * 24 * 7;
 
 function secret() {
   const value = process.env.SESSION_SECRET;
@@ -17,11 +19,15 @@ function secret() {
   return new TextEncoder().encode(value);
 }
 
+function sessionSeconds(role: Session["role"]) {
+  return role === "creator" ? CREATOR_SESSION_SECONDS : ADMIN_SESSION_SECONDS;
+}
+
 export async function signSession(session: Session) {
   return new SignJWT(session)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime(`${sessionSeconds(session.role)}s`)
     .sign(secret());
 }
 
@@ -50,7 +56,7 @@ export async function setSession(session: Session) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: sessionSeconds(session.role),
   });
 }
 
