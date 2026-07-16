@@ -1,4 +1,3 @@
-import { randomInt } from "node:crypto";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -14,6 +13,7 @@ const inputSchema = z.object({
   followers: z.coerce.number().int().min(0).default(0),
   commissionRate: z.coerce.number().min(1).max(10).default(7),
   discountCode: z.string().min(2).max(30),
+  pin: z.string().regex(/^\d{4}$/),
 });
 
 function normalizeHandle(value: string) {
@@ -36,8 +36,7 @@ export async function POST(request: Request) {
     const handle = normalizeHandle(input.handle);
     if (!handle) return NextResponse.json({ error: "Enter a valid creator handle" }, { status: 400 });
 
-    const pin = String(randomInt(1000, 10000));
-    const pinHash = await hash(pin, 12);
+    const pinHash = await hash(input.pin, 12);
     const email = input.email?.trim() || `${handle}.${userId.slice(-8)}@creator.gizet.local`;
     const code = input.discountCode.toUpperCase();
 
@@ -58,7 +57,6 @@ export async function POST(request: Request) {
       creatorId,
       handle,
       code,
-      pin,
       loginUrl: `${appUrl.replace(/\/$/, "")}/login?creator=${encodeURIComponent(code)}`,
     }, { status: 201 });
   } catch (error) {
