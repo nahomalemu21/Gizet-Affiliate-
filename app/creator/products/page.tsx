@@ -1,12 +1,28 @@
-import { products } from "@/lib/demo-data";
-import { formatEtb } from "@/lib/format";
-import { Icon } from "@/components/Icons";
 import { PageHeader } from "@/components/UI";
-import { CopyButton } from "@/components/CopyButton";
+import { ProductLibrary } from "@/components/creator/ProductLibrary";
+import { requireSession } from "@/lib/auth";
+import { getCreator, listProductsForCreatorEditor } from "@/lib/data";
 
-export default function CreatorProducts() {
-  return <div className="page-wrap"><PageHeader eyebrow="Product marketplace" title="Choose products worth posting." subtitle="Every product shows the exact ETB payout for a successfully delivered order."/>
-    <div className="toolbar"><div className="search-box"><Icon name="search" size={16}/><input placeholder="Search products or categories"/></div><button className="btn-secondary"><Icon name="filter" size={15}/> Filters</button></div>
-    <div className="product-grid">{products.map((product)=><article className="product-card" key={product.id}><div className="product-visual"><span>{product.image}</span>{product.featured&&<div className="featured-chip"><Icon name="spark" size={12}/> Recommended</div>}</div><div className="product-content"><div className="product-meta"><span>{product.category}</span><span>{product.stock} in stock</span></div><h2>{product.title}</h2><div className="product-price">{formatEtb(product.price)}</div><div className="commission-box"><div><span>You earn</span><strong>{formatEtb(product.payout)}</strong></div><div><span>Rate</span><strong>{product.commissionRate}%</strong></div></div><div className="product-performance"><span>Conversion</span><strong>{product.conversionRate}%</strong></div><CopyButton value={`https://gizet.com/c/hana/${product.slug}`} label="Copy affiliate link"/></div></article>)}</div>
+export const dynamic = "force-dynamic";
+
+export default async function CreatorProducts() {
+  const session = await requireSession("creator");
+  if (!session.creatorId) throw new Error("Creator profile missing");
+
+  const [creator, products] = await Promise.all([
+    getCreator(session.creatorId),
+    listProductsForCreatorEditor(session.creatorId),
+  ]);
+  if (!creator) throw new Error("Creator not found");
+
+  const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://gizet-affiliate.vercel.app";
+
+  return <div className="page-wrap">
+    <PageHeader
+      eyebrow="Your storefront catalog"
+      title="Choose what appears in your store."
+      subtitle="Add or remove products at any time. Only selected products appear on your public creator storefront."
+    />
+    <ProductLibrary products={products} creatorHandle={creator.handle} appUrl={appUrl} />
   </div>;
 }
