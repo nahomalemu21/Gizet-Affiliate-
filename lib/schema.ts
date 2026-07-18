@@ -11,9 +11,19 @@ export const schemaStatements = [
     discount_code TEXT UNIQUE,
     payout_method TEXT,
     payout_details TEXT,
+    storefront_title TEXT,
+    storefront_bio TEXT,
+    avatar_url TEXT,
+    banner_url TEXT,
+    storefront_published BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
+  `ALTER TABLE creators ADD COLUMN IF NOT EXISTS storefront_title TEXT`,
+  `ALTER TABLE creators ADD COLUMN IF NOT EXISTS storefront_bio TEXT`,
+  `ALTER TABLE creators ADD COLUMN IF NOT EXISTS avatar_url TEXT`,
+  `ALTER TABLE creators ADD COLUMN IF NOT EXISTS banner_url TEXT`,
+  `ALTER TABLE creators ADD COLUMN IF NOT EXISTS storefront_published BOOLEAN NOT NULL DEFAULT TRUE`,
   `CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     email TEXT NOT NULL UNIQUE,
@@ -48,8 +58,12 @@ export const schemaStatements = [
     product_id TEXT NOT NULL REFERENCES affiliate_products(id) ON DELETE CASCADE,
     custom_rate NUMERIC(5,2),
     active BOOLEAN NOT NULL DEFAULT TRUE,
+    featured BOOLEAN NOT NULL DEFAULT FALSE,
+    position INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (creator_id, product_id)
   )`,
+  `ALTER TABLE creator_products ADD COLUMN IF NOT EXISTS featured BOOLEAN NOT NULL DEFAULT FALSE`,
+  `ALTER TABLE creator_products ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0`,
   `CREATE TABLE IF NOT EXISTS affiliate_clicks (
     id TEXT PRIMARY KEY,
     creator_id TEXT NOT NULL REFERENCES creators(id) ON DELETE CASCADE,
@@ -102,4 +116,5 @@ export const schemaStatements = [
   `CREATE INDEX IF NOT EXISTS idx_orders_creator_status ON affiliate_orders(creator_id, commission_status)`,
   `CREATE INDEX IF NOT EXISTS idx_orders_payout ON affiliate_orders(payout_id)`,
   `CREATE INDEX IF NOT EXISTS idx_products_active ON affiliate_products(active, updated_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_creator_products_active ON creator_products(creator_id, active, position)`,
 ];
