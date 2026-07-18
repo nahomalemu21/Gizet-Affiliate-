@@ -20,7 +20,6 @@ export default async function PublicCreatorStore({ params }: { params: Promise<{
   if (!creator) notFound();
 
   const products = await listCreatorProducts(creator.id);
-  const storeUrl = process.env.NEXT_PUBLIC_GIZET_STORE_URL || "https://gizet.co";
 
   return <CreatorStorefront
     creator={{
@@ -46,6 +45,5 @@ export default async function PublicCreatorStore({ params }: { params: Promise<{
       stock: Number(product.stock),
       featured: Boolean(product.featured),
     }))}
-    storeUrl={storeUrl}
   />;
 }

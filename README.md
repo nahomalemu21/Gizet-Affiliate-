@@ -20,6 +20,7 @@ A separate affiliate system for Gizet creators and operations. It does not modif
 
 ```env
 NEXT_PUBLIC_GIZET_STORE_URL=https://gizet.co
+NEXT_PUBLIC_GIZET_CHECKOUT_URL=https://checkout.gizet.co
 NEXT_PUBLIC_APP_URL=https://YOUR-VERCEL-DOMAIN
 APP_URL=https://YOUR-VERCEL-DOMAIN
 AFFILIATE_COOKIE_DAYS=30
