@@ -10,22 +10,60 @@ const PRODUCTS_QUERY = `#graphql
       nodes {
         id title handle productType totalInventory
         featuredImage { url }
-        variants(first: 1) { nodes { id price } }
+        variants(first: 1) {
+          nodes {
+            id
+            price
+            availableForSale
+            inventoryQuantity
+            inventoryPolicy
+          }
+        }
       }
     }
   }
 `;
 
+type ShopifyVariant = {
+  id: string;
+  price: string;
+  availableForSale: boolean;
+  inventoryQuantity: number | null;
+  inventoryPolicy: "CONTINUE" | "DENY";
+};
+
+type ShopifyProduct = {
+  id: string;
+  title: string;
+  handle: string;
+  productType: string;
+  totalInventory: number | null;
+  featuredImage: { url: string } | null;
+  variants: { nodes: ShopifyVariant[] };
+};
+
 type ShopifyProductPage = {
   products: {
     pageInfo: { hasNextPage: boolean; endCursor: string | null };
-    nodes: Array<{
-      id: string; title: string; handle: string; productType: string; totalInventory: number | null;
-      featuredImage: { url: string } | null;
-      variants: { nodes: Array<{ id: string; price: string }> };
-    }>;
+    nodes: ShopifyProduct[];
   };
 };
+
+function stockForProduct(product: ShopifyProduct, variant: ShopifyVariant | undefined) {
+  if (!variant) return 0;
+
+  const canOversell = variant.inventoryPolicy === "CONTINUE";
+  if (!variant.availableForSale && !canOversell) return 0;
+
+  if (typeof variant.inventoryQuantity === "number" && variant.inventoryQuantity > 0) {
+    return variant.inventoryQuantity;
+  }
+  if (canOversell) return 1;
+  if (typeof product.totalInventory === "number" && product.totalInventory > 0) {
+    return product.totalInventory;
+  }
+  return 1;
+}
 
 export async function POST() {
   const auth = await requireApiRole("admin");
@@ -46,7 +84,7 @@ export async function POST() {
             category=EXCLUDED.category, image_url=EXCLUDED.image_url, price=EXCLUDED.price,
             stock=EXCLUDED.stock, active=TRUE, updated_at=NOW()
         `, [`prod_${product.id.split("/").pop()}`, product.id, variant?.id || null, product.title, product.handle,
-          product.productType || null, product.featuredImage?.url || null, Number(variant?.price || 0), Number(product.totalInventory || 0)]);
+          product.productType || null, product.featuredImage?.url || null, Number(variant?.price || 0), stockForProduct(product, variant)]);
         synced += 1;
       }
       cursor = data.products.pageInfo.hasNextPage ? data.products.pageInfo.endCursor : null;

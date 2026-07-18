@@ -147,6 +147,8 @@ export function CreatorStorefront({ creator, products, storeUrl }: {
       <div className={styles.grid}>
         {visible.map((product) => {
           const quantity = cart[product.id] || 0;
+          const soldOut = product.stock === 0;
+          const addToBagDisabled = !product.shopify_variant_id || soldOut;
           return <article className={styles.card} key={product.id}>
             <a href={`/c/${creator.handle}/${product.slug}`} className={styles.image} style={product.image_url ? { backgroundImage: `url(${product.image_url})` } : undefined}>
               {!product.image_url && <span>{product.title.slice(0, 2).toUpperCase()}</span>}
@@ -156,7 +158,7 @@ export function CreatorStorefront({ creator, products, storeUrl }: {
               <span className={styles.category}>{product.category || "Gizet"}</span>
               <a href={`/c/${creator.handle}/${product.slug}`} className={styles.productTitle}>{product.title}</a>
               <strong className={styles.price}>{money(Number(product.price))}</strong>
-              {quantity === 0 ? <button className={styles.addButton} disabled={!product.shopify_variant_id || product.stock === 0} onClick={() => add(product.id)}>{product.stock === 0 ? "Sold out" : "Add to bag"}</button> :
+              {quantity === 0 ? <button className={styles.addButton} disabled={addToBagDisabled} onClick={() => add(product.id)}>{soldOut ? "Sold out" : "Add to bag"}</button> :
                 <div className={styles.quantity}><button onClick={() => remove(product.id)}>−</button><strong>{quantity}</strong><button onClick={() => add(product.id)}>+</button></div>}
             </div>
           </article>;
